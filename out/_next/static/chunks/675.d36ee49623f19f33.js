@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[675],{4675:function(e,n,t){t.d(n,{db:function(){return c}});var s=t(7868);class r extends s.ZP{constructor(){super("financeDB"),this.version(2).stores({transactions:"++id, description, amount, date, category, monthYear"})}}let c=new r}}]);
