@@ -7,7 +7,8 @@ export interface Transaction {
   date: string;
   category: string;
   installment: string;
-  monthYear: string; // Adicionando a propriedade corretamente
+  monthYear: string;
+  paymentMethod: string;
 }
 
 class FinanceDatabase extends Dexie {

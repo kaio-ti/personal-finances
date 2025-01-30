@@ -26,7 +26,7 @@ export async function processCSV(file: File): Promise<Transaction[]> {
       encoding: "UTF-8",
       complete: (results) => {
         try {
-          const transactions: Transaction[] = results.data
+          const transactions = results.data
             .map((row: any, index: number) => {
               try {
                 const amount = parseCurrency(row["Valor (em R$)"]) || 0;
@@ -35,7 +35,7 @@ export async function processCSV(file: File): Promise<Transaction[]> {
                   row["Descrição"] === "Inclusao de Pagamento" ||
                   amount < 0
                 ) {
-                  return null;
+                  return null; // Transações inválidas
                 }
 
                 return {
@@ -46,7 +46,7 @@ export async function processCSV(file: File): Promise<Transaction[]> {
                     new Date().toISOString(),
                   category: row["Categoria"] || "Outros",
                   installment: row["Parcela"] || "Única",
-                  paymentMethod: "Crédito", // ✅ NOVO CAMPO PADRÃO
+                  paymentMethod: "Crédito", // Valor padrão
                   monthYear: "",
                 };
               } catch (err) {
@@ -54,7 +54,7 @@ export async function processCSV(file: File): Promise<Transaction[]> {
                 return null;
               }
             })
-            .filter(Boolean);
+            .filter((tx): tx is Transaction => tx !== null);
 
           resolve(transactions);
         } catch (err) {
