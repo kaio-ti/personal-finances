@@ -1,14 +1,17 @@
 "use client";
 
-import Papa from "papaparse";
+const getPapa = async () => {
+  const Papa = (await import("papaparse")).default;
+  return Papa;
+};
 import { Transaction } from "@/lib/db";
 
-// Função para converter string de número para float
+// Função para converter valores do CSV corretamente
 const parseCurrency = (value: string) => {
   return parseFloat(value.replace(",", "."));
 };
 
-// Função para converter data do CSV para DD/MM/YYYY
+// Função para formatar datas corretamente
 const parseDate = (dateStr: string) => {
   const parts = dateStr.split("/");
   if (parts.length === 3) {
@@ -19,6 +22,7 @@ const parseDate = (dateStr: string) => {
 };
 
 export async function processCSV(file: File): Promise<Transaction[]> {
+  const Papa = await getPapa();
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
@@ -35,7 +39,7 @@ export async function processCSV(file: File): Promise<Transaction[]> {
                   row["Descrição"] === "Inclusao de Pagamento" ||
                   amount < 0
                 ) {
-                  return null; // Transações inválidas
+                  return null;
                 }
 
                 return {
@@ -46,7 +50,7 @@ export async function processCSV(file: File): Promise<Transaction[]> {
                     new Date().toISOString(),
                   category: row["Categoria"] || "Outros",
                   installment: row["Parcela"] || "Única",
-                  paymentMethod: "Crédito", // Valor padrão
+                  paymentMethod: "Crédito",
                   monthYear: "",
                 };
               } catch (err) {

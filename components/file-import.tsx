@@ -1,12 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import dynamic from "next/dynamic";
+const Dropzone = dynamic(() => import("react-dropzone"), { ssr: false });
 import { Upload, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+const Progress = dynamic(
+  () => import("@/components/ui/progress").then((mod) => mod.Progress),
+  {
+    ssr: false,
+  }
+);
 import {
   Select,
   SelectContent,
@@ -14,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { processCSV } from "@/lib/file-processors";
-import { db } from "@/lib/db";
 import { Transaction } from "@/lib/db";
 
 export function FileImport() {
@@ -42,9 +46,7 @@ export function FileImport() {
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       if (!selectedMonth) {
-        toast.error(
-          "Por favor, selecione um mês de referência antes de importar."
-        );
+        toast.error("Por favor, selecione um mês antes de importar.");
         return;
       }
 
@@ -53,6 +55,7 @@ export function FileImport() {
 
       try {
         for (const file of acceptedFiles) {
+          const { processCSV } = await import("@/lib/file-processors"); // Importação dinâmica correta
           const transactions: Transaction[] = await processCSV(file);
 
           const transactionsWithMonth = transactions.map((tx) => ({
@@ -60,7 +63,10 @@ export function FileImport() {
             monthYear: selectedMonth,
           }));
 
-          await db.transactions.bulkAdd(transactionsWithMonth);
+          if (typeof window !== "undefined") {
+            const { db } = await import("@/lib/db");
+            await db.transactions.bulkAdd(transactionsWithMonth);
+          }
 
           setProgress(100);
           toast.success("Arquivo importado com sucesso!");
@@ -75,10 +81,10 @@ export function FileImport() {
     [selectedMonth]
   );
 
-  const { getRootProps, getInputProps } = useDropzone({
+  const dropzoneProps = {
     onDrop,
     accept: { "text/csv": [".csv"] },
-  });
+  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -112,18 +118,24 @@ export function FileImport() {
         </Select>
       </div>
 
-      <Card
-        {...getRootProps()}
-        className="mt-4 p-6 border-dashed border-2 text-center cursor-pointer hover:bg-gray-100"
-      >
-        <input {...getInputProps()} />
-        <Upload className="w-10 h-10 mx-auto text-gray-500" />
-        <p className="mt-2 text-gray-700">
-          Arraste e solte um arquivo CSV ou clique para selecionar
-        </p>
-      </Card>
+      <Dropzone {...dropzoneProps}>
+        {({ getRootProps, getInputProps }) => (
+          <Card
+            {...getRootProps()}
+            className="mt-4 p-6 border-dashed border-2 text-center cursor-pointer hover:bg-gray-100"
+          >
+            <input {...getInputProps()} />
+            <Upload className="w-10 h-10 mx-auto text-gray-500" />
+            <p className="mt-2 text-gray-700">
+              Arraste e solte um arquivo CSV ou clique para selecionar
+            </p>
+          </Card>
+        )}
+      </Dropzone>
 
-      {processing && <Progress value={progress} className="mt-4" />}
+      {processing && typeof window !== "undefined" && (
+        <Progress value={progress} className="mt-4" />
+      )}
 
       {uploaded && (
         <div className="mt-4">
